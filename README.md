@@ -19,8 +19,12 @@ If possible, we'll publish graphs and other visualizations detailing the pros an
 It is important to note that this framework will not be chess-specific.
 Rather, it is a generalized move search/evaluation framework that could, in theory, support other two-player perfect information board games.
 
-# Challenges
-None anticipated.
+# Possible Challenges
+There are several challenges that are inherent to a project like this. 
+First of all, the success of any artificial intelligence project like this is highly dependent on the creation ot a robust and useful heuristic. 
+If we can't determine a way to accurately evaluate the utility of a given position, our algorithm will not be able to efficiently determine the best moves to make. 
+Second, this project will be highly dependent on computational efficiency. 
+It will be crucial that we optimize every possible component of our project so that our algorithm can check as many states as possible in a reasonable amount of time.
 
 # References
 Stockfish
