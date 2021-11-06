@@ -12,7 +12,7 @@ Pickerel is a chess engine implemented in Rust. We decided to build a chess engi
 We plan to implement a modern chess analysis engine (a la Stockfish) in Rust.
 The first thing we plan to do is implement a generalized tree search (with alpha-beta pruning), which will search/evaluate for the optimal moves given any arbitrary position evaluation function.
 This will allow us to compare various heuristical position evaluation functions for speed and efficiacy.
-After we have a general framework is set up, we'll implement several heuristical position evaluation functions.
+After we have a general framework set up, we'll implement several heuristical position evaluation functions.
 Finally, we'll tune and optimize our heuristical evaluation functions as well as implement advanced techniques like NNUE.
 If possible, we'll publish graphs and other visualizations detailing the pros and cons of each heuristical position analysis function we looked at.
 
