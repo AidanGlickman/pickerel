@@ -9,3 +9,5 @@ authors = ["Max Fan <root@max.fan>", "Aidan Glickman <aidan@aidanglickman.com>"]
 
 [dependencies]
 chess = "3.2.0"
+# serde = "1.0.130"
+# serde_json = "1.0.69"
