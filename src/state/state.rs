@@ -9,7 +9,7 @@ pub trait State<M: Move> {
     fn is_valid(&self) -> bool;
     fn format(&self) -> String;
     fn hash(&self) -> u64;
-    fn make_move(&self, _: M);
+    fn make_move(&self, _: M) -> Self;
     fn legal_moves(&self) -> Vec<M>;
 }
 
