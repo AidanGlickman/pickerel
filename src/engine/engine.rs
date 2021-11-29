@@ -12,18 +12,26 @@ pub trait Engine<M: Move, S: State<M>> {
     where
         Self: Sized,
     {
-        let legal_moves: Vec<M> = self.legal_moves();
+        self.minimax_naive_recurse(evaluator, depth, perspective, self.state())
+    }
+
+    fn minimax_naive_recurse(&self, evaluator: &dyn StateEval<M, S>, depth: usize, perspective: bool, state: S) -> f64
+    where
+        Self: Sized,
+    {
+        let legal_moves: Vec<M> = state.legal_moves();
         if depth == 0 || legal_moves.is_empty() {
-            evaluator.evaluate(&self.state())
+            evaluator.evaluate(&state)
         } else {
             let mut values = vec![];
 
             for movement in legal_moves {
-                let state: Self = self.make_move(movement);
-                values.push(OrderedFloat(state.minimax_naive(
+                let state: S = state.make_move(movement);
+                values.push(OrderedFloat(self.minimax_naive_recurse(
                     evaluator,
                     depth - 1,
                     !perspective,
+                    state
                 )));
             }
 
