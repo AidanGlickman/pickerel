@@ -17,51 +17,18 @@ pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + 
     where
         Self: Sized,
     {
-        self.minimax_naive_recurse(evaluator, depth, perspective, self.state())
+        minimax_naive_recurse(evaluator, depth, perspective, self.state())
     }
 
-    fn minimax_naive_recurse(
-        &self,
-        evaluator: &dyn StateEval<M, S>,
-        depth: usize,
-        perspective: bool,
-        state: S,
-    ) -> f64
-    where
-        Self: Sized,
-    {
-        let legal_moves: Vec<M> = state.legal_moves();
-        if depth == 0 || legal_moves.is_empty() {
-            evaluator.evaluate(&state)
-        } else {
-            let mut values = vec![];
-
-            for movement in legal_moves {
-                let state: S = state.make_move(movement);
-                values.push(OrderedFloat(self.minimax_naive_recurse(
-                    evaluator,
-                    depth - 1,
-                    !perspective,
-                    state,
-                )));
-            }
-
-            if perspective {
-                return values.iter().max().unwrap().into_inner();
-            } else {
-                return values.iter().min().unwrap().into_inner();
-            }
-        }
-    }
     // ################################################################################
     //                                  Simplified ABDADA
     // ################################################################################
     const DEFER_DEPTH: usize = 2;
     const NUM_THREADS: usize = 4;
 
-    fn abdada(&mut self, depth: usize, evaluator: &'static dyn StateEval<M, S>, state: S) -> f64
+    fn abdada(&self, depth: usize, evaluator: &'static dyn StateEval<M, S>, state: S) -> f64
     where
-        Self: Send,
+        Self: Sync,
     {
         let curr_searching = Arc::new(RwLock::new(HashSet::new()));
         let threads: Vec<_> = (0..Self::NUM_THREADS)
@@ -197,5 +164,38 @@ pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + 
         }
         let mut set = curr_searching.write().expect("RwLock poisoned");
         set.insert(curr_move);
+    }
+}
+
+fn minimax_naive_recurse<
+    M: Move + std::marker::Sync + std::marker::Send,
+    S: State<M> + std::marker::Send,
+>(
+    evaluator: &dyn StateEval<M, S>,
+    depth: usize,
+    perspective: bool,
+    state: S,
+) -> f64 {
+    let legal_moves: Vec<M> = state.legal_moves();
+    if depth == 0 || legal_moves.is_empty() {
+        evaluator.evaluate(&state)
+    } else {
+        let mut values = vec![];
+
+        for movement in legal_moves {
+            let state: S = state.make_move(movement);
+            values.push(OrderedFloat(minimax_naive_recurse(
+                evaluator,
+                depth - 1,
+                !perspective,
+                state,
+            )));
+        }
+
+        if perspective {
+            return values.iter().max().unwrap().into_inner();
+        } else {
+            return values.iter().min().unwrap().into_inner();
+        }
     }
 }
