@@ -2,8 +2,9 @@ use crate::state::state::{Move, State, StateEval};
 use ordered_float::OrderedFloat;
 use std::collections::HashSet;
 use std::sync::mpsc::channel;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
+use std::cmp;
 
 pub trait Engine<M: Move, S: State<M>> {
     // fn new() -> Self;
@@ -66,11 +67,13 @@ pub trait Engine<M: Move, S: State<M>> {
         evaluator: &dyn StateEval<M, S>,
         state: S,
     ) -> usize {
-        let mut curr_searching = Arc::new(Mutex::new(HashSet::new()));
-        let (tx, rx) = channel();
-        for _ in 0..Self::NUM_THREADS {
-            self.abdada_recurse(alpha, beta, depth, evaluator, state, &curr_searching)
-        }
+        let mut curr_searching = Arc::new(RwLock::new(HashSet::new()));
+        let mut position_vals = Arc::new(RwLock::new(HashSet::new()));
+        let thereads = (0..Self::NUM_THREADS).map(|_| {
+            let searching = Arc::clone(&curr_searching);
+            let vals = Arc::clone(&position_vals);
+            let val = self.abdada_recurse(usize::MIN, usize::MAX, depth, true, evaluator, state, vals, searching);
+        });
         0
     }
 
@@ -79,24 +82,35 @@ pub trait Engine<M: Move, S: State<M>> {
         alpha: usize,
         beta: usize,
         depth: usize,
+        maximizing: bool,
         evaluator: &dyn StateEval<M, S>,
         state: S,
+        position_values: &HashMap<M>
         curr_searching: &HashSet<M>,
     ) -> usize {
-        let mut curr_searching: HashSet<M> = HashSet::new();
         let legal_moves: Vec<M> = state.legal_moves();
+        if depth == 0 || legal_moves.is_empty() {
+            return evaluator.evaluate(&state);
+        }
+        let mut curr_searching: HashSet<M> = HashSet::new();
         let mut deferred_moves: Vec<M> = vec![];
         let mut x: usize = 0;
+        let comp = if maximizing {
+            cmp::max
+        } else {
+            cmp::min
+        };
         for i in 0..legal_moves.len() {
             if i == 0 {
-                x = 0 - self.abdada_recurse(
-                    0 - beta,
-                    0 - alpha,
+                x = comp(x, self.abdada_recurse(
+                    beta,
+                    alpha,
                     depth - 1,
+                    !maximizing,
                     evaluator,
                     state.make_move(legal_moves[i]),
                     &curr_searching,
-                );
+                ));
             } else {
                 if self.defer_move(legal_moves[i], depth, &curr_searching) {
                     deferred_moves.push(legal_moves[i]);
@@ -104,28 +118,30 @@ pub trait Engine<M: Move, S: State<M>> {
                 }
 
                 self.starting_search(legal_moves[i], depth, &curr_searching);
-                x = 0 - self.abdada_recurse(
-                    0 - alpha - 1,
-                    0 - alpha,
+                x = comp(x, self.abdada_recurse(
+                    alpha,
+                    beta,
                     depth - 1,
+                    !maximizing,
                     evaluator,
                     state.make_move(legal_moves[i]),
                     &curr_searching,
-                );
+                ));
                 self.finished_search(legal_moves[i], depth, &curr_searching);
-                if x > alpha && x < beta {
-                    x = 0 - self.abdada_recurse(
-                        0 - beta,
-                        0 - alpha,
-                        depth - 1,
-                        evaluator,
-                        state.make_move(legal_moves[i]),
-                        &curr_searching,
-                    );
-                }
             }
         }
-        0
+        if maximizing{
+            if x >= beta {
+                break;
+            }
+            alpha = cmp::max(alpha, x);
+        } else {
+            if x <= alpha {
+                break;
+            }
+            beta = cmp::min(beta, x);
+        }
+        return x;
     }
 
     fn defer_move(&self, curr_move: M, depth: usize, curr_searching: &HashSet<M>) -> bool {
