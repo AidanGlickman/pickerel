@@ -31,12 +31,12 @@ impl Engine<ChessMoveWrapper, ChessBoard> for ChessEngine {
         evaluator.evaluate(&self.board)
     }
 
-    fn make_move(&self, mov: ChessMoveWrapper) -> ChessEngine {
-        ChessEngine {
-            board: self.board.make_move(mov),
-            cache: self.cache.clone(),
-        }
-    }
+    // fn make_move(&self, mov: ChessMoveWrapper) -> ChessEngine {
+    //     ChessEngine {
+    //         board: self.board.make_move(mov),
+    //         cache: self.cache.clone(),
+    //     }
+    // }
 
     fn add_to_cache(&mut self, state: ChessBoard, score_depth: (f64, usize)) {
         match self.cache.get(&state) {
