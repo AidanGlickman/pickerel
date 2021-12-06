@@ -1,5 +1,3 @@
-use std::hash::Hash;
-
 pub trait Move: std::cmp::Eq + std::hash::Hash {
     fn is_valid(self) -> bool;
 }

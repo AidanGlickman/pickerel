@@ -1,8 +1,7 @@
 use chess::{Board, ChessMove, MoveGen};
 // use serde::{Serialize, Deserialize};
 use crate::state::state::{Move, State};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::hash::Hasher;
 
 #[derive(Clone, Debug)]
 pub struct ChessMoveWrapper {

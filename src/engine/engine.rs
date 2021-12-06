@@ -1,13 +1,10 @@
 use crate::state::state::{Move, State, StateEval};
 use ordered_float::OrderedFloat;
-use std::collections::HashSet;
-use std::sync::mpsc::channel;
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
 use std::cmp;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, RwLock};
 
 pub trait Engine<M: Move, S: State<M>> {
-    // fn new() -> Self;
     fn state(&self) -> S;
     fn legal_moves(&self) -> Vec<M>;
     fn score(&self, evaluator: &dyn StateEval<M, S>) -> f64;
@@ -72,7 +69,16 @@ pub trait Engine<M: Move, S: State<M>> {
         let thereads = (0..Self::NUM_THREADS).map(|_| {
             let searching = Arc::clone(&curr_searching);
             let vals = Arc::clone(&position_vals);
-            let val = self.abdada_recurse(usize::MIN, usize::MAX, depth, true, evaluator, state, vals, searching);
+            let val = self.abdada_recurse(
+                usize::MIN,
+                usize::MAX,
+                depth,
+                true,
+                evaluator,
+                state,
+                vals,
+                searching,
+            );
         });
         0
     }
@@ -85,7 +91,7 @@ pub trait Engine<M: Move, S: State<M>> {
         maximizing: bool,
         evaluator: &dyn StateEval<M, S>,
         state: S,
-        position_values: &HashMap<M>
+        position_values: &HashMap<M>,
         curr_searching: &HashSet<M>,
     ) -> usize {
         let legal_moves: Vec<M> = state.legal_moves();
@@ -95,22 +101,21 @@ pub trait Engine<M: Move, S: State<M>> {
         let mut curr_searching: HashSet<M> = HashSet::new();
         let mut deferred_moves: Vec<M> = vec![];
         let mut x: usize = 0;
-        let comp = if maximizing {
-            cmp::max
-        } else {
-            cmp::min
-        };
+        let comp = if maximizing { cmp::max } else { cmp::min };
         for i in 0..legal_moves.len() {
             if i == 0 {
-                x = comp(x, self.abdada_recurse(
-                    beta,
-                    alpha,
-                    depth - 1,
-                    !maximizing,
-                    evaluator,
-                    state.make_move(legal_moves[i]),
-                    &curr_searching,
-                ));
+                x = comp(
+                    x,
+                    self.abdada_recurse(
+                        beta,
+                        alpha,
+                        depth - 1,
+                        !maximizing,
+                        evaluator,
+                        state.make_move(legal_moves[i]),
+                        &curr_searching,
+                    ),
+                );
             } else {
                 if self.defer_move(legal_moves[i], depth, &curr_searching) {
                     deferred_moves.push(legal_moves[i]);
@@ -118,28 +123,32 @@ pub trait Engine<M: Move, S: State<M>> {
                 }
 
                 self.starting_search(legal_moves[i], depth, &curr_searching);
-                x = comp(x, self.abdada_recurse(
-                    alpha,
-                    beta,
-                    depth - 1,
-                    !maximizing,
-                    evaluator,
-                    state.make_move(legal_moves[i]),
-                    &curr_searching,
-                ));
+                x = comp(
+                    x,
+                    self.abdada_recurse(
+                        alpha,
+                        beta,
+                        depth - 1,
+                        !maximizing,
+                        evaluator,
+                        state.make_move(legal_moves[i]),
+                        &curr_searching,
+                    ),
+                );
                 self.finished_search(legal_moves[i], depth, &curr_searching);
             }
-        }
-        if maximizing{
-            if x >= beta {
-                break;
+
+            if maximizing {
+                if x >= beta {
+                    break;
+                }
+                alpha = cmp::max(alpha, x);
+            } else {
+                if x <= alpha {
+                    break;
+                }
+                beta = cmp::min(beta, x);
             }
-            alpha = cmp::max(alpha, x);
-        } else {
-            if x <= alpha {
-                break;
-            }
-            beta = cmp::min(beta, x);
         }
         return x;
     }
