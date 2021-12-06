@@ -5,7 +5,7 @@ use crate::state::state::StateEval;
 pub struct NullEval;
 
 impl StateEval<ChessMoveWrapper, ChessBoard> for NullEval {
-    fn evaluate(&self, board: &ChessBoard) -> f64 {
+    fn evaluate(&self, _board: &ChessBoard) -> f64 {
         0.0
     }
 }

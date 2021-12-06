@@ -1,9 +1,8 @@
 use chess::{Board, ChessMove, MoveGen};
 // use serde::{Serialize, Deserialize};
 use crate::state::state::{Move, State};
-use std::hash::Hasher;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
 pub struct ChessMoveWrapper {
     chess_move: ChessMove,
 }
@@ -22,7 +21,7 @@ impl Move for ChessMoveWrapper {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
 pub struct ChessBoard {
     board: chess::Board,
 }
