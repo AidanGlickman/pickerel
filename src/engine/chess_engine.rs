@@ -16,6 +16,13 @@ impl ChessEngine {
             cache: HashMap::new(),
         }
     }
+
+    pub fn from_str(fen: String) -> Self {
+        ChessEngine {
+            board: ChessBoard::from_str(fen),
+            cache: HashMap::new()
+        }
+    }
 }
 
 impl Engine<ChessMoveWrapper, ChessBoard> for ChessEngine {
