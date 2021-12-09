@@ -1,6 +1,6 @@
 use crate::state::state::{Move, State, StateEval};
 use ordered_float::OrderedFloat;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 use std::thread;
 
@@ -9,12 +9,6 @@ const NUM_THREADS: usize = 4;
 
 pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + std::marker::Send> {
     fn state(&self) -> S;
-    fn legal_moves(&self) -> Vec<M>;
-    fn score(&self, evaluator: &dyn StateEval<M, S>) -> f64;
-    // fn make_move(&self, _: M) -> Self;
-
-    fn add_to_cache(&mut self, state: S, score_depth: (f64, usize));
-    fn get_from_cache(&self, state: &S) -> Option<(f64, usize)>;
 
     fn minimax_naive(&self, evaluator: &dyn StateEval<M, S>, depth: usize, perspective: bool) -> f64
     where
@@ -26,14 +20,18 @@ pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + 
     // ################################################################################
     //                                  Simplified ABDADA
     // ################################################################################
-    fn abdada(&self, depth: usize, evaluator: &dyn StateEval<M, S>, state: S) -> f64 {
+    fn abdada(&self, evaluator: &'static dyn StateEval<M, S>, depth: usize) -> f64 {
         let curr_searching = Arc::new(RwLock::new(HashSet::new()));
+        let cache = Arc::new(RwLock::new(HashMap::<u64, (usize, f64)>::new()));
+        let state = self.state();
+
         let threads: Vec<_> = (0..NUM_THREADS)
             .map(|_| {
-                let searching = Arc::clone(&curr_searching);
+                let searching = curr_searching.clone();
+                let cloned_cache = cache.clone();
                 thread::spawn(move || {
                     abdada_recurse(
-                        &self,
+                        cloned_cache,
                         f64::MIN,
                         f64::MAX,
                         depth,
@@ -48,7 +46,14 @@ pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + 
         for t in threads {
             t.join().expect("Thread panicked");
         }
-        self.get_from_cache(&state).unwrap().0
+
+        let x = cache
+            .read()
+            .expect("Lock poisoned")
+            .get(&state.hash())
+            .unwrap()
+            .1;
+        x
     }
 }
 
@@ -56,7 +61,7 @@ fn abdada_recurse<
     M: Move + std::marker::Sync + std::marker::Send,
     S: State<M> + std::marker::Send,
 >(
-    engine: &dyn Engine<M, S>,
+    cache: Arc<RwLock<HashMap<u64, (usize, f64)>>>,
     mut alpha: f64,
     mut beta: f64,
     depth: usize,
@@ -65,10 +70,10 @@ fn abdada_recurse<
     state: &S,
     curr_searching: &Arc<RwLock<HashSet<M>>>,
 ) -> f64 {
-    match engine.get_from_cache(&state) {
-        Some(score_depth) => {
-            if score_depth.1 >= depth {
-                return score_depth.0;
+    match cache.read().expect("Lock poisoned").get(&state.hash()) {
+        Some((cached_depth, score)) => {
+            if *cached_depth >= depth {
+                return *score;
             }
         }
         None => (),
@@ -83,7 +88,7 @@ fn abdada_recurse<
     for i in 0..legal_moves.len() {
         if i == 0 {
             values.push(OrderedFloat(abdada_recurse(
-                engine,
+                cache.clone(),
                 beta,
                 alpha,
                 depth - 1,
@@ -100,7 +105,7 @@ fn abdada_recurse<
 
             starting_search(legal_moves[i], depth, &curr_searching);
             values.push(OrderedFloat(abdada_recurse(
-                engine,
+                cache.clone(),
                 beta,
                 alpha,
                 depth - 1,
@@ -126,7 +131,19 @@ fn abdada_recurse<
             beta = beta.min(x);
         }
     }
-    engine.add_to_cache(*state, (x, depth));
+
+    let mut cache_writer = cache.write().expect("Lock poisoned");
+    match cache_writer.get(&state.hash()) {
+        // do not overwrite deeper evaluation
+        Some((cached_depth, score)) => {
+            if *cached_depth > depth {
+                return *score;
+            }
+        }
+        None => (),
+    }
+
+    cache_writer.insert(state.hash(), (depth, x));
     x
 }
 

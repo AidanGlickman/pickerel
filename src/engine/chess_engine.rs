@@ -22,43 +22,4 @@ impl Engine<ChessMoveWrapper, ChessBoard> for ChessEngine {
     fn state(&self) -> ChessBoard {
         self.board.clone()
     }
-
-    fn legal_moves(&self) -> Vec<ChessMoveWrapper> {
-        self.board.legal_moves()
-    }
-
-    fn score(&self, evaluator: &dyn StateEval<ChessMoveWrapper, ChessBoard>) -> f64 {
-        evaluator.evaluate(&self.board)
-    }
-
-    // fn make_move(&self, mov: ChessMoveWrapper) -> ChessEngine {
-    //     ChessEngine {
-    //         board: self.board.make_move(mov),
-    //         cache: self.cache.clone(),
-    //     }
-    // }
-
-    fn add_to_cache(&mut self, state: ChessBoard, score_depth: (f64, usize)) {
-        match self.cache.get(&state) {
-            Some(score_depth_found) => {
-                if score_depth_found.1 < score_depth.1 {
-                    self.cache.insert(state, score_depth);
-                }
-            }
-            None => {
-                self.cache.insert(state, score_depth);
-            }
-        }
-    }
-
-    fn get_from_cache(&self, state: &ChessBoard) -> Option<(f64, usize)> {
-        match self.cache.get(&state) {
-            Some(score_depth) => Some(score_depth.clone()),
-            None => None,
-        }
-    }
-
-    // fn state(&self) -> &ChessBoard {
-    //     &self.board
-    // }
 }
