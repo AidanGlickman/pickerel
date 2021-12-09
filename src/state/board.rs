@@ -1,5 +1,4 @@
 use chess::{Board, ChessMove, MoveGen};
-// use serde::{Serialize, Deserialize};
 use crate::state::state::{Move, State};
 use std::str::FromStr;
 
