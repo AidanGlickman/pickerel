@@ -1,6 +1,6 @@
 use chess::{Board, ChessMove, MoveGen};
-// use serde::{Serialize, Deserialize};
 use crate::state::state::{Move, State};
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
 pub struct ChessMoveWrapper {
@@ -23,12 +23,17 @@ impl Move for ChessMoveWrapper {
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
 pub struct ChessBoard {
-    board: chess::Board,
+    pub board: chess::Board,
 }
 
 impl ChessBoard {
     pub fn default() -> Self {
         let chess_board: Board = Board::default();
+        ChessBoard { board: chess_board }
+    }
+
+    pub fn from_str(fen: String) -> Self {
+        let chess_board: Board = chess::Board::from_str(&fen).expect("Invalid FEN!");
         ChessBoard { board: chess_board }
     }
 }

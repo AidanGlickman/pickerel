@@ -47,13 +47,16 @@ pub trait Engine<M: Move + std::marker::Sync + std::marker::Send, S: State<M> + 
             t.join().expect("Thread panicked");
         }
 
-        let x = cache
+        let (evaluated_depth, value) = cache
             .read()
             .expect("Lock poisoned")
             .get(&state.hash())
-            .unwrap()
-            .1;
-        x
+            .unwrap().clone();
+        if evaluated_depth >= depth {
+            value
+        } else {
+            panic!("Cache failure")
+        }
     }
 }
 
@@ -119,13 +122,13 @@ fn abdada_recurse<
 
         if maximizing {
             x = values.iter().max().unwrap().into_inner();
-            if x >= beta {
+            if x > beta {
                 break;
             }
             alpha = alpha.max(x);
         } else {
             x = values.iter().min().unwrap().into_inner();
-            if x <= alpha {
+            if x < alpha {
                 break;
             }
             beta = beta.min(x);
