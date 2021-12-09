@@ -23,6 +23,10 @@ impl ChessEngine {
             cache: HashMap::new()
         }
     }
+
+    pub fn update_fen(&mut self, fen: String) {
+        self.board = ChessBoard::from_str(fen);
+    }
 }
 
 impl Engine<ChessMoveWrapper, ChessBoard> for ChessEngine {

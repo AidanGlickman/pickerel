@@ -122,13 +122,13 @@ fn abdada_recurse<
 
         if maximizing {
             x = values.iter().max().unwrap().into_inner();
-            if x >= beta {
+            if x > beta {
                 break;
             }
             alpha = alpha.max(x);
         } else {
             x = values.iter().min().unwrap().into_inner();
-            if x <= alpha {
+            if x < alpha {
                 break;
             }
             beta = beta.min(x);
